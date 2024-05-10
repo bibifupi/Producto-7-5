@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Table(name="productos")
 public class Producto {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private int idProducto;
     @Column (length = 60, nullable = false)
     private String nombreProducto;

@@ -2,13 +2,21 @@
 
 package com.softtek.controlador;
 
+import com.softtek.dto.ProductoDTO;
+import com.softtek.excepciones.ExcepcionPersonalizadaNoEncontrado;
 import com.softtek.modelo.Producto;
 import com.softtek.servicio.IProductoServicio;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+
+import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @RestController
 @RequestMapping("/productos")
@@ -21,29 +29,51 @@ public class ControladorProducto {
     private IProductoServicio servicio;
 
     @GetMapping
-    public List<Producto> obtenerTodos() throws SQLException, ClassNotFoundException {
-
-        return servicio.consultarTodos();
+    public ResponseEntity<List<ProductoDTO>> obtenerTodos(){
+        List<Producto> productosBBDD = servicio.consultarTodos();
+        List<ProductoDTO> productosDTO = new ArrayList<>();
+        for (Producto elemento:
+                productosBBDD) {
+            ProductoDTO eDto = new ProductoDTO();
+            productosDTO.add(eDto.castProductoADTO(elemento));
+        }
+        return new ResponseEntity<>(productosDTO,HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public Producto obtenerId(@PathVariable int id) throws SQLException, ClassNotFoundException {
-        return servicio.consultarUno(id);
+    public ResponseEntity<ProductoDTO> obtenerId(@PathVariable(name="id") Integer id) {
+        Producto p1 = servicio.consultarUno(id);
+        if(p1 == null){
+            throw new ExcepcionPersonalizadaNoEncontrado("PRODUCTO NO ENCONTRADO " + id);
+        }
+        return new ResponseEntity<>((new ProductoDTO()).castProductoADTO(p1),HttpStatus.OK);
     }
 
     @PostMapping
-    public void insertarProducto(@RequestBody Producto producto) throws SQLException, ClassNotFoundException {
-        servicio.crear(producto);
+    public ResponseEntity<ProductoDTO> insertarProducto(@Valid @RequestBody ProductoDTO p) {
+        Producto p1 = p.castProducto();
+        p1 = servicio.crear(p1);
+        return new ResponseEntity<>(p.castProductoADTO(p1), HttpStatus.CREATED);
     }
 
     @PutMapping
-    public void actualizarProducto(@RequestBody Producto productos) throws SQLException, ClassNotFoundException {
-        servicio.modificar(productos);
+    public ResponseEntity<ProductoDTO> actualizarProducto(@Valid @RequestBody ProductoDTO p) {
+        Producto p1 = servicio.consultarUno(p.getIdProducto());
+        if(p1 == null){
+            throw new ExcepcionPersonalizadaNoEncontrado("PRODUCTO NO ENCONTRADO " + p.getIdProducto());
+        }
+        p1 = servicio.modificar(p.castProducto());
+        return new ResponseEntity<>(p.castProductoADTO(p1), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public void borrarProducto(@PathVariable int id) throws SQLException, ClassNotFoundException {
+    public ResponseEntity<Void> borrarProducto(@PathVariable(name="id") Integer id){
+        Producto p1 = servicio.consultarUno(id);
+        if(p1 == null){
+            throw new ExcepcionPersonalizadaNoEncontrado("PRODUCTO NO ENCONTRADO " + id);
+        }
         servicio.eliminar(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
 
